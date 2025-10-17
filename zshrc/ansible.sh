@@ -7,3 +7,5 @@ function avde {
 # viewing and editing vault encrypted files
 alias avv='ansible-vault view'
 alias ave='ansible-vault edit'
+
+alias ap='ansible-playbook'
