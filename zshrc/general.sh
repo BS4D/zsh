@@ -88,3 +88,6 @@ function open_url {
     xdg-open $@
   fi
 }
+
+# disable software flow control
+stty -ixon
