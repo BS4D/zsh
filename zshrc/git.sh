@@ -16,8 +16,8 @@ alias ga='git add'
 alias gcc='git checkout'
 
 alias gc='git commit'
-alias gca='git commit --amend'
-alias gcane='git commit --amend --no-edit'
+alias gca='GIT_COMMITTER_DATE="$(git log -1 --format=%aD)" git commit --amend'
+alias gcane='gca --no-edit'
 
 alias gp='git pull'
 function gpr {
@@ -41,9 +41,13 @@ function gppa {
 }
 alias gppfa='gppa --force'
 
-alias gr='git rebase'
+alias gr='git rebase --committer-date-is-author-date'
 alias gra='git rebase --abort'
 alias grc='git rebase --continue'
+alias gri='gr --interactive'
+
+alias grr='git remote'
+alias grrv='git remote --verbose'
 
 function get_git_url {
   if [ "$#" -eq 0 ]; then
