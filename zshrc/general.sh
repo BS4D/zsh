@@ -91,3 +91,36 @@ function open_url {
 
 # disable software flow control
 stty -ixon
+
+# bitwarden backup
+function bw-backup {
+  backup_dir="$HOME/backup/bitwarden"
+
+  echo -n 'enter the bitwarden password: '
+  read -s password
+  echo
+
+  session=$(bw unlock --raw <<< "$password")
+  if [ $? -ne 0 ]; then
+    echo 'password incorrect, failed to unlock the vault'
+    unset password
+    return 1
+  fi
+
+  bw sync --session "$session"
+
+  backup_file="$backup_dir/$(date +%Y%m%d-%H%M%S).csv.gpg"
+
+  bw export --raw --session "$session" | gpg --batch --symmetric --output "$backup_file" --passphrase-fd 3 3<<< "$password"
+
+  if [ $? -eq 0 ]; then
+    echo "data exported and encrypted at $backup_file"
+  else
+    echo "export or encryption failed"
+    return 1
+  fi
+
+  unset password session
+
+  bw lock
+}
