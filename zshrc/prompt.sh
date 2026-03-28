@@ -1,6 +1,6 @@
 case "$OS" in
   'arch')     host_color='cyan' ;;
-  'raspbian') host_color='red'  ;;
+  'debian')   host_color='red'  ;;
   'mac')      host_color='green';;
   *)          host_color='white';;
 esac
