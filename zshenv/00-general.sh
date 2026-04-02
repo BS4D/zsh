@@ -1,4 +1,4 @@
-export EDITOR='nvim'
+export EDITOR='vim'
 export TERM='xterm-256color'
 
 if [ "$(uname)" = 'Darwin' ]; then
