@@ -8,16 +8,16 @@ alias lla='ll -a'
 
 # file search and edition
 function ff {
-  find $@ -type f
+  find "$@" -type f
 }
 function ed {
-  find $@ -type f ! -path '*/.*/*' ! -name '.*' -exec "$EDITOR" {} +
+  find "$@" -type f ! -path '*/.*/*' ! -name '.*' -exec "$EDITOR" {} +
 }
 function fd {
-  find $@ -type d
+  find "$@" -type d
 }
 function fde {
-  find $@ -type d -empty
+  find "$@" -type d -empty
 }
 
 # color diff output
@@ -27,30 +27,30 @@ function diff {
 
 # package management
 case "$OS" in
-  'arch')
-    alias pkginfo='pacman --sync --info'
-    alias lfpkg='pacman --sync --search'
-    alias lfitpkg='pacman --query --search'
-    alias itpkg='sudo pacman --sync'
-    alias rmpkg='sudo pacman --remove --recursive'
-    alias uppkgs='sudo pacman --sync --refresh --sysupgrade'
-    ;;
-  'raspbian')
-    alias pkginfo='apt show'
-    alias lfpkg='apt search'
-    alias lfitpkg='apt list --installed | grep'
-    alias itpkg='sudo apt install'
-    alias rmpkg='sudo apt remove'
-    alias uppkgs='sudo sh -c "apt update && apt upgrade && apt autoremove && apt autoclean"'
-    ;;
-  'mac')
-    alias pkginfo='brew info'
-    alias lfpkg='brew search'
-    alias lfitpkg='brew list | grep'
-    alias itpkg='brew install'
-    alias rmpkg='brew uninstall'
-    alias uppkgs='brew update && brew upgrade && brew autoremove'
-    ;;
+'arch')
+  alias pkginfo='pacman --sync --info'
+  alias lfpkg='pacman --sync --search'
+  alias lfitpkg='pacman --query --search'
+  alias itpkg='sudo pacman --sync'
+  alias rmpkg='sudo pacman --remove --recursive'
+  alias uppkgs='sudo pacman --sync --refresh --sysupgrade'
+  ;;
+'raspbian')
+  alias pkginfo='apt show'
+  alias lfpkg='apt search'
+  alias lfitpkg='apt list --installed | grep'
+  alias itpkg='sudo apt install'
+  alias rmpkg='sudo apt remove'
+  alias uppkgs='sudo sh -c "apt update && apt upgrade && apt autoremove && apt autoclean"'
+  ;;
+'mac')
+  alias pkginfo='brew info'
+  alias lfpkg='brew search'
+  alias lfitpkg='brew list | grep'
+  alias itpkg='brew install'
+  alias rmpkg='brew uninstall'
+  alias uppkgs='brew update && brew upgrade && brew autoremove'
+  ;;
 esac
 
 # clipboard
@@ -71,20 +71,20 @@ function gethist {
 alias ws='cd -P ~/.ws'
 function wsf {
   ws
-  vim $(cat ~/.wsf)
+  vim "$(cat ~/.wsf)"
 }
 function cws {
   ln -sfn "$(pwd)" ~/.ws
-  echo "$(ff $@)" > ~/.wsf
+  ff "$@" >~/.wsf
   [ $# -gt 0 ] && wsf
 }
 
 # system independent url opening
 function open_url {
   if [ "$OS" = 'mac' ]; then
-    open $@
+    open "$@"
   else
-    xdg-open $@
+    xdg-open "$@"
   fi
 }
 
@@ -93,33 +93,24 @@ stty -ixon
 
 # bitwarden backup
 function bw-backup {
+  local password session backup_dir
+
   backup_dir="$HOME/backup/bitwarden"
 
   echo -n 'enter the bitwarden password: '
-  read -s password
+  read -rs password
   echo
 
-  session=$(bw unlock --raw <<< "$password")
-  if [ $? -ne 0 ]; then
-    echo 'password incorrect, failed to unlock the vault'
-    unset password
-    return 1
-  fi
+  session=$(bw unlock --raw <<<"$password") || return 1
 
   bw sync --session "$session"
 
   backup_file="$backup_dir/$(date +%Y%m%d-%H%M%S).csv.gpg"
 
-  bw export --raw --session "$session" | gpg --batch --symmetric --output "$backup_file" --passphrase-fd 3 3<<< "$password"
+  bw export --raw --session "$session" |
+    gpg --batch --symmetric --output "$backup_file" --passphrase-fd 3 3<<<"$password" || return 1
 
-  if [ $? -eq 0 ]; then
-    echo "data exported and encrypted at $backup_file"
-  else
-    echo "export or encryption failed"
-    return 1
-  fi
-
-  unset password session
+  echo "data exported and encrypted at $backup_file"
 
   bw lock
 }

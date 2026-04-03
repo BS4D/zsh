@@ -1,5 +1,6 @@
 export ZDOTDIR="$HOME/.config/zsh"
 
 for file in "$ZDOTDIR"/zshenv/*; do
-	source "$file"
+  # shellcheck source=/dev/null
+  source "$file"
 done

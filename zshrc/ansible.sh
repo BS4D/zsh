@@ -1,7 +1,7 @@
 # string encryption and decryption using vault
 alias aven='ansible-vault encrypt_string'
 function avde {
-  echo $@ | tr -d ' ' | ansible-vault decrypt --output -
+  echo "$@" | tr -d ' ' | ansible-vault decrypt --output -
 }
 
 # viewing and editing vault encrypted files

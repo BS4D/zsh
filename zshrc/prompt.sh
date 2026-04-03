@@ -1,14 +1,14 @@
 case "$OS" in
-  'arch')     host_color='cyan' ;;
-  'debian')   host_color='red'  ;;
-  'mac')      host_color='green';;
-  *)          host_color='white';;
+'arch') host_color='cyan' ;;
+'debian') host_color='red' ;;
+'mac') host_color='green' ;;
+*) host_color='white' ;;
 esac
 
 [ "$USER" = 'root' ] && command_prompt='%F{red}#%f' || command_prompt='$'
 
 git_branch() {
-	git status &> /dev/null && echo "%F{yellow}(git: $(git branch --show-current))%f "
+  git status &>/dev/null && echo "%F{yellow}(git: $(git branch --show-current))%f "
 }
 
 setopt prompt_subst

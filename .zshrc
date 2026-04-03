@@ -1,9 +1,11 @@
 for file in "$ZDOTDIR"/zshrc/*; do
-	source "$file"
+  # shellcheck source=/dev/null
+  source "$file"
 done
 
 HISTFILE="$ZDOTDIR/.histfile"
 HISTSIZE=1000000000
+# shellcheck disable=SC2034
 SAVEHIST=$HISTSIZE
 
 # Lines configured by zsh-newuser-install
