@@ -1,3 +1,5 @@
+#!/usr/bin/env zsh
+
 # string encryption and decryption using vault
 alias aven='ansible-vault encrypt_string'
 function avde {

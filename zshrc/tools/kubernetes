@@ -1,2 +1,4 @@
+#!/usr/bin/env zsh
+
 alias k='kubectl'
 alias kgp='kubectl get pods'

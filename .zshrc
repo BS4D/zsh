@@ -1,4 +1,4 @@
-for file in "$ZDOTDIR"/zshrc/*; do
+for file in "$ZDOTDIR"/zshrc/**/*; do
   # shellcheck source=/dev/null
   source "$file"
 done

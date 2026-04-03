@@ -1,0 +1,11 @@
+#!/usr/bin/env zsh
+
+[ "$OS" = 'debian' ] || return
+
+# package management
+alias pkginfo='apt show'
+alias lfpkg='apt search'
+alias lfitpkg='apt list --installed | grep'
+alias itpkg='sudo apt install'
+alias rmpkg='sudo apt remove'
+alias uppkgs='sudo sh -c "apt update && apt upgrade && apt autoremove && apt autoclean"'

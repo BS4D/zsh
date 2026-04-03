@@ -1,0 +1,27 @@
+#!/usr/bin/env zsh
+
+[ "$OS" = 'mac' ] || return
+
+# package management
+alias pkginfo='brew info'
+alias lfpkg='brew search'
+alias lfitpkg='brew list | grep'
+alias itpkg='brew install'
+alias rmpkg='brew uninstall'
+alias uppkgs='brew update && brew upgrade && brew autoremove'
+
+function cb {
+  "$@" pbcopy
+}
+
+function open_url {
+  open "$@"
+}
+
+function find {
+  if [[ "$" -eq 0 || "$1" == -* ]]; then
+    command find . "$@"
+  else
+    command find "$@"
+  fi
+}

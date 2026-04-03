@@ -1,0 +1,21 @@
+#!/usr/bin/env zsh
+
+[ "$OS" = 'arch' ] || return
+
+alias sudo='doas'
+
+# package management
+alias pkginfo='pacman --sync --info'
+alias lfpkg='pacman --sync --search'
+alias lfitpkg='pacman --query --search'
+alias itpkg='sudo pacman --sync'
+alias rmpkg='sudo pacman --remove --recursive'
+alias uppkgs='sudo pacman --sync --refresh --sysupgrade'
+
+function cb {
+  "$@" sed --null-data "s/\n$//" | xclip -selection clipboard
+}
+
+function open_url {
+  xdg-open "$@"
+}

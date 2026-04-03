@@ -1,3 +1,5 @@
+#!/usr/bin/env zsh
+
 case "$OS" in
 'arch') host_color='cyan' ;;
 'debian') host_color='red' ;;
@@ -7,7 +9,7 @@ esac
 
 [ "$USER" = 'root' ] && command_prompt='%F{red}#%f' || command_prompt='$'
 
-git_branch() {
+function git_branch {
   git status &>/dev/null && echo "%F{yellow}(git: $(git branch --show-current))%f "
 }
 

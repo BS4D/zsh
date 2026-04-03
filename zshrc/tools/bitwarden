@@ -1,0 +1,25 @@
+#!/usr/bin/env zsh
+
+# bitwarden backup
+function bw-backup {
+  local password session backup_dir
+
+  backup_dir="$HOME/backup/bitwarden"
+
+  echo -n 'enter the bitwarden password: '
+  read -rs password
+  echo
+
+  session=$(bw unlock --raw <<<"$password") || return 1
+
+  bw sync --session "$session"
+
+  backup_file="$backup_dir/$(date +%Y%m%d-%H%M%S).csv.gpg"
+
+  bw export --raw --session "$session" |
+    gpg --batch --symmetric --output "$backup_file" --passphrase-fd 3 3<<<"$password" || return 1
+
+  echo "data exported and encrypted at $backup_file"
+
+  bw lock
+}
