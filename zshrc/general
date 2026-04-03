@@ -1,5 +1,7 @@
 #!/usr/bin/env zsh
 
+bindkey '^R' history-incremental-search-backward
+
 alias grep='grep --color=auto'
 alias ls='ls --color=auto'
 alias l='ls'
