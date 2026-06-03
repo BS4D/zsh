@@ -1,4 +1,12 @@
 #!/usr/bin/env zsh
 
 alias k='kubectl'
-alias kgp='kubectl get pods'
+alias kd='k describe'
+alias kg='k get'
+alias kgp='kg pods'
+
+alias kc='k config'
+alias kcgc='kc get-contexts'
+alias kcuc='kc use-context'
+alias kcsc='kc set-context'
+alias kcrc='kc rename-context'
