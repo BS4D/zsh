@@ -11,3 +11,5 @@ else
 fi
 
 export OS
+
+export KUBECONFIG="$(printf '%s:' ~/.kube/config/*(N) | sed 's/:$//')"
