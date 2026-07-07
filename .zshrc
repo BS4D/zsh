@@ -1,8 +1,3 @@
-for file in "$ZDOTDIR"/zshrc/**/*; do
-  # shellcheck source=/dev/null
-  source "$file"
-done
-
 HISTFILE="$ZDOTDIR/.histfile"
 HISTSIZE=1000000000
 # shellcheck disable=SC2034
@@ -35,3 +30,8 @@ zstyle :compinstall filename "$ZDOTDIR/.zshrc"
 autoload -Uz compinit
 compinit
 # End of lines added by compinstall
+
+for file in "$ZDOTDIR"/zshrc/**/*; do
+  # shellcheck source=/dev/null
+  source "$file"
+done

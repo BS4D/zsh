@@ -25,3 +25,5 @@ function find {
     command find "$@"
   fi
 }
+
+alias ls='gls --color'

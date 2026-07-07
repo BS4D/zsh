@@ -6,8 +6,10 @@ export TERM='xterm-256color'
 if [ "$(uname)" = 'Darwin' ]; then
   OS='mac'
   eval "$(/opt/homebrew/bin/brew shellenv zsh)"
+  eval "$(gdircolors -b)"
 else
   OS="$(cat /etc/os-release | grep '^ID=' | cut --delimiter='=' --fields=2)"
+  eval "$(dircolors -b)"
 fi
 
 export OS

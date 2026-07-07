@@ -1,0 +1,33 @@
+#!/usr/bin/env zsh
+
+local fzf_colors=(
+  bg:#282828
+  bg+:#3c3836
+  fg:#ebdbb2
+  fg+:#ebdbb2
+  hl:#fabd2f
+  hl+:#fabd2f
+  info:#b16286
+  marker:#b8bb26
+  pointer:#fe8019
+  prompt:#b8bb26
+  spinner:#d79921
+  header:#d79921
+)
+
+local fzf_opts=(
+  --height=~80%
+  --layout=reverse
+  --info=inline
+  --border
+  --margin=4
+  --padding=1
+  --color=${(j:,:)fzf_colors}
+)
+
+source <(fzf --zsh)
+
+export FZF_DEFAULT_OPTS="$fzf_opts"
+
+zstyle ':fzf-tab:*' fzf-flags $fzf_opts
+zstyle ':completion:*' list-colors ${(s.:.)LS_COLORS}
