@@ -1,0 +1,45 @@
+#!/usr/bin/env zsh
+
+setopt prompt_subst
+
+function prompt_block {
+  local color="$1" content="$2" icon="$3"
+  [ -z "$content" ] && return
+
+  echo -n "─[ %F{$color}"
+  [ -n "$icon" ] && echo -n "$icon "
+  echo -n "$content%F{white} ]"
+}
+
+# save command exit code to print in the prompt
+precmd() {
+  cmd_exit_code=$?
+}
+
+function print_prompt {
+  # line 1
+  echo -n "%F{white}┌"
+  prompt_block red "$(ssh_host)" "󰍹"       # ssh connection
+  prompt_block yellow "%~" ""             # working directory
+  prompt_block magenta "$(git_status)" "" # git status
+  prompt_block blue "$(k8s_context)" "󰀱"   # kubernetes context
+  prompt_block grey "$(aws_profile)" "󰸏"   # aws profile
+
+  echo
+
+  # line 2
+  echo -n "└"
+  [ "$last_status" -ne 0 ] && echo -n "[%F{red}$cmd_exit_code%F{white}]" # exit code of the last command
+  if [ "$USER" = 'root' ]; then
+    echo -n '─%B%F{red}#%f%b ' # red hash for root
+  else
+    echo -n '─%B%F{green}$%f%b ' # green dollar for a regular user
+  fi
+}
+
+PROMPT='$(print_prompt)'
+
+# right prompt shows time
+RPROMPT='%F{white}[%F{green}%D{%H:%M}%F{white}]'
+
+PS2=$' %F{white}-%F{green}>%f '

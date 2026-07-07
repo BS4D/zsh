@@ -1,0 +1,42 @@
+#!/usr/bin/env zsh
+
+function git_status {
+  # current branch
+  local branch=$(git symbolic-ref --short HEAD 2>/dev/null) || return
+
+  # line diff section
+  local added deleted \
+    diff="" \
+    stats=$(git diff --numstat 2>/dev/null | awk '{a+=$1; d+=$2} END {print a, d}')
+  read -r added deleted <<<"$stats"
+  ((added > 0)) && diff+="%F{green}+$added"
+  ((added > 0 && deleted > 0)) && diff+="%F{white}|"
+  ((deleted > 0)) && diff+="%F{red}-$deleted"
+
+  # file state section
+  local rule pattern color icon count \
+    files="" \
+    porcelain=$(git status --porcelain 2>/dev/null) \
+    file_rules=(
+      '^A:green:'   # staged new
+      '^M:green:'   # staged modified
+      '^D:green:'   # staged deleted
+      '^R:green:'   # staged renamed
+      '^.M:yellow:' # unstaged modified
+      '^.D:yellow:' # unstaged deleted
+      '^??:red:'    # untracked
+    )
+  for rule in $file_rules; do
+    rule=(${(s.:.)rule})
+    pattern="$rule[1]"
+    color="$rule[2]"
+    icon="$rule[3]"
+    count=$(grep -c "$pattern" <<<"$porcelain")
+    ((count > 0)) && files+=" %F{$color}$icon $count"
+  done
+
+  # print everything
+  echo -n "$branch"
+  [ -n "$diff" ] && echo -n "%F{white} / %F{white} $diff"
+  [ -n "$files" ] && echo -n "%F{white} /$files"
+}

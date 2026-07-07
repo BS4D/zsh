@@ -1,0 +1,5 @@
+#!/usr/bin/env zsh
+
+function aws_profile {
+  env | grep -q '^AWS_PROFILE=' && echo "$AWS_PROFILE"
+}
