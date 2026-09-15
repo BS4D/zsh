@@ -28,24 +28,5 @@ function diff {
   command diff --color=always "$@"
 }
 
-# history
-alias lfhist='history 0 | grep'
-function gethist {
-  local id="$1"
-  history 0 | grep "^ *$id" | sed 's/.*  //' | tr -d '\n' | cb
-}
-
-# workspace
-alias ws='cd -P ~/.ws'
-function wsf {
-  ws
-  vim "$(cat ~/.wsf)"
-}
-function cws {
-  ln -sfn "$(pwd)" ~/.ws
-  ff "$@" >~/.wsf
-  [ $# -gt 0 ] && wsf
-}
-
 # disable software flow control
 stty -ixon

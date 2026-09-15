@@ -1,0 +1,337 @@
+#!/usr/bin/env zsh
+
+# workspaces registry (~/.workspaces.yaml)
+# keyed by absolute directory path, so a dir can only have one workspace entry
+alias w=workspace
+function workspace {
+  emulate -L zsh
+
+  local cmd="$1"
+  if [[ -z "$cmd" ]]; then
+    echo "Usage: w <command> [args]" >&2
+    echo "Commands: add, open, list, remove" >&2
+    return 1
+  fi
+  shift
+
+  case "$cmd" in
+  a | add)
+    _w_add "$@"
+    ;;
+  o | open)
+    _w_open "$@"
+    ;;
+  l | list)
+    _w_list "$@"
+    ;;
+  rm | r | remove)
+    _w_remove "$@"
+    ;;
+  *)
+    echo "w: unknown command '$cmd'" >&2
+    echo "Commands: (a)dd, (o)pen, (l)ist, (r)e(m)ove" >&2
+    return 1
+    ;;
+  esac
+}
+
+function _w_abspath {
+  emulate -L zsh
+  local path="$1"
+
+  # expand ~ manually (in case the value came from a variable, not literal shell expansion)
+  path="${path/#\~/$HOME}"
+
+  # make absolute against the shell's logical cwd, without resolving any symlinks
+  [[ "$path" == /* ]] || path="$PWD/$path"
+
+  # lexically collapse ./, // and .. segments (no filesystem access, no symlink resolution)
+  local -a parts result
+  parts=("${(s:/:)path}")
+  local p
+  for p in "${parts[@]}"; do
+    case "$p" in
+    '' | '.') ;;
+    '..') [[ ${#result[@]} -gt 0 ]] && result[-1]=() ;;
+    *) result+=("$p") ;;
+    esac
+  done
+
+  print -r -- "/${(j:/:)result}"
+}
+
+function _w_add {
+  emulate -L zsh
+  local ws_file="${WORKSPACES_FILE:-$HOME/.workspaces.yaml}"
+
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "w add: requires 'yq' (mikefarah/yq) to be installed" >&2
+    return 1
+  fi
+
+  local opt_dir opt_files
+  if ! zparseopts -D -E -- d:=opt_dir -dir:=opt_dir -directory:=opt_dir f:=opt_files -files:=opt_files; then
+    echo "Usage: w add <name> [-d|--directory <path>] [-f|--files <file1,file2,...>]" >&2
+    return 1
+  fi
+
+  # anything left that looks like a flag was not recognized above
+  local arg
+  for arg in "$@"; do
+    if [[ "$arg" == -* ]]; then
+      echo "w add: unrecognized flag '$arg'" >&2
+      return 1
+    fi
+  done
+
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: w add <name> [-d|--directory <path>] [-f|--files <file1,file2,...>]" >&2
+    return 1
+  elif [[ $# -gt 1 ]]; then
+    echo "w add: too many arguments: $*" >&2
+    return 1
+  fi
+
+  local name="$1"
+
+  local dir
+  dir="$(_w_abspath "${opt_dir[-1]:-.}")"
+  if [[ ! -d "$dir" ]]; then
+    echo "w add: directory '$dir' does not exist" >&2
+    return 1
+  fi
+
+  [[ -f "$ws_file" ]] || echo "{}" >"$ws_file"
+
+  local existing_dir
+  existing_dir=$(NAME="$name" yq eval 'to_entries[] | select(.value.name == strenv(NAME)) | .key' "$ws_file" | head -1)
+  if [[ -n "$existing_dir" && "$existing_dir" != "$dir" ]]; then
+    echo "w add: workspace name '$name' is already used for '$existing_dir'" >&2
+    return 1
+  fi
+
+  # only touch .files when -f/--files was actually passed; otherwise preserve
+  # whatever files are already configured for this dir (so re-adding a dir
+  # under a new name, e.g. to rename it, doesn't wipe its file list)
+  if (( ${#opt_files[@]} )); then
+    local files_csv="${opt_files[-1]}"
+    local -a files
+    files=("${(s:,:)files_csv}")
+
+    local f trimmed
+    for f in "${files[@]}"; do
+      trimmed="${f##[[:space:]]#}"
+      trimmed="${trimmed%%[[:space:]]#}"
+      [[ -n "$trimmed" ]] || continue
+      if [[ ! -e "$dir/$trimmed" ]]; then
+        echo "w add: warning: '$trimmed' does not exist in '$dir'" >&2
+      fi
+    done
+
+    DIR="$dir" NAME="$name" FILES="$files_csv" yq eval -i \
+      '.[strenv(DIR)].name = strenv(NAME) | .[strenv(DIR)].files = (strenv(FILES) | split(",") | map(sub("^\s+|\s+$","")))' \
+      "$ws_file"
+  else
+    DIR="$dir" NAME="$name" yq eval -i \
+      '.[strenv(DIR)].name = strenv(NAME) | .[strenv(DIR)].files = (.[strenv(DIR)].files // [])' \
+      "$ws_file"
+  fi
+
+  echo "Saved workspace '$name' -> $dir"
+}
+
+function _w_open {
+  emulate -L zsh
+  local ws_file="${WORKSPACES_FILE:-$HOME/.workspaces.yaml}"
+
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "w open: requires 'yq' (mikefarah/yq) to be installed" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$ws_file" ]]; then
+    echo "w open: no workspaces file found at $ws_file" >&2
+    return 1
+  fi
+
+  local opt_files
+  if ! zparseopts -D -E -- f=opt_files -files=opt_files; then
+    echo "Usage: w open <name> [-f|--files]" >&2
+    return 1
+  fi
+
+  local arg
+  for arg in "$@"; do
+    if [[ "$arg" == -* ]]; then
+      echo "w open: unrecognized flag '$arg'" >&2
+      return 1
+    fi
+  done
+
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: w open <name> [-f|--files]" >&2
+    return 1
+  elif [[ $# -gt 1 ]]; then
+    echo "w open: too many arguments: $*" >&2
+    return 1
+  fi
+
+  local name="$1"
+
+  local dir
+  dir=$(NAME="$name" yq eval 'to_entries[] | select(.value.name == strenv(NAME)) | .key' "$ws_file" | head -1)
+
+  if [[ -z "$dir" ]]; then
+    echo "w open: no workspace named '$name'" >&2
+    return 1
+  fi
+
+  if [[ ! -d "$dir" ]]; then
+    echo "w open: directory '$dir' for workspace '$name' does not exist" >&2
+    return 1
+  fi
+
+  cd "$dir" || return 1
+
+  if [[ -n "${opt_files[-1]}" ]]; then
+    local -a files
+    files=("${(@f)$(DIR="$dir" yq eval '.[strenv(DIR)].files[]' "$ws_file")}")
+    if [[ ${#files[@]} -eq 0 || -z "${files[1]}" ]]; then
+      echo "w open: workspace '$name' has no files configured" >&2
+      return 1
+    fi
+    "${EDITOR:-vi}" "${files[@]}"
+  fi
+}
+
+function _w_list {
+  emulate -L zsh
+  local ws_file="${WORKSPACES_FILE:-$HOME/.workspaces.yaml}"
+
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "w list: requires 'yq' (mikefarah/yq) to be installed" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$ws_file" ]]; then
+    echo "w list: no workspaces file found at $ws_file" >&2
+    return 1
+  fi
+
+  if [[ $# -gt 1 ]]; then
+    echo "Usage: w list [search]" >&2
+    return 1
+  fi
+
+  local search="${1:l}"
+
+  local -a dirs
+  dirs=("${(@f)$(yq eval 'keys | .[]' "$ws_file")}")
+
+  if [[ ${#dirs[@]} -eq 0 || -z "${dirs[1]}" ]]; then
+    echo "w list: no workspaces found"
+    return 0
+  fi
+
+  local dir name found=0
+  for dir in "${dirs[@]}"; do
+    name=$(DIR="$dir" yq eval '.[strenv(DIR)].name' "$ws_file")
+
+    if [[ -n "$search" ]] && [[ "${dir:l}" != *"$search"* ]] && [[ "${name:l}" != *"$search"* ]]; then
+      continue
+    fi
+
+    found=1
+    echo "$name -> $dir"
+    DIR="$dir" yq eval '.[strenv(DIR)].files[]' "$ws_file" | while IFS= read -r file; do
+      echo "  - $file"
+    done
+  done
+
+  if [[ "$found" -eq 0 ]]; then
+    echo "w list: no workspaces matching '$1'" >&2
+    return 1
+  fi
+}
+
+function _w_remove {
+  emulate -L zsh
+  local ws_file="${WORKSPACES_FILE:-$HOME/.workspaces.yaml}"
+
+  if ! command -v yq >/dev/null 2>&1; then
+    echo "w remove: requires 'yq' (mikefarah/yq) to be installed" >&2
+    return 1
+  fi
+
+  if [[ ! -f "$ws_file" ]]; then
+    echo "w remove: no workspaces file found at $ws_file" >&2
+    return 1
+  fi
+
+  local arg
+  for arg in "$@"; do
+    if [[ "$arg" == -* ]]; then
+      echo "w remove: unrecognized flag '$arg'" >&2
+      return 1
+    fi
+  done
+
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: w remove <name>" >&2
+    return 1
+  elif [[ $# -gt 1 ]]; then
+    echo "w remove: too many arguments: $*" >&2
+    return 1
+  fi
+
+  local name="$1"
+
+  local dir
+  dir=$(NAME="$name" yq eval 'to_entries[] | select(.value.name == strenv(NAME)) | .key' "$ws_file" | head -1)
+
+  if [[ -z "$dir" ]]; then
+    echo "w remove: no workspace named '$name'" >&2
+    return 1
+  fi
+
+  DIR="$dir" yq eval -i 'del(.[strenv(DIR)])' "$ws_file"
+
+  echo "Removed workspace '$name' -> $dir"
+}
+
+function _workspace_names {
+  emulate -L zsh
+  local ws_file="${WORKSPACES_FILE:-$HOME/.workspaces.yaml}"
+  command -v yq >/dev/null 2>&1 || return 0
+  [[ -f "$ws_file" ]] || return 0
+  yq eval '.[].name' "$ws_file" 2>/dev/null
+}
+
+function _workspace {
+  emulate -L zsh
+  local -a subcommands
+  subcommands=(
+    'add:register the current (or given) directory as a workspace'
+    'open:cd into a workspace, optionally opening its files'
+    'list:list registered workspaces'
+    'remove:remove a registered workspace'
+  )
+
+  if (( CURRENT == 2 )); then
+    _describe -t commands 'w command' subcommands
+    return
+  fi
+
+  case "${words[2]}" in
+  o | open | rm | r | remove | l | list)
+    local -a names
+    names=("${(@f)$(_workspace_names)}")
+    _describe -t workspaces 'workspace' names
+    ;;
+  a | add)
+    _arguments '-d[directory]:directory:_directories' '--directory[directory]:directory:_directories' \
+      '-f[files]:files:' '--files[files]:files:'
+    ;;
+  esac
+}
+compdef _workspace workspace w 2>/dev/null
